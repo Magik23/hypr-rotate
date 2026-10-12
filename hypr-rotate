@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+monitor="$(
+    hyprctl monitors -j |
+    jq -r '.[] | select(.focused == true) | .name'
+)"
+
+current="$(
+    hyprctl monitors -j |
+    jq -r '.[] | select(.focused == true) | .transform'
+)"
+
+next=$(( (current + 1) % 4 ))
+
+hyprctl eval "hl.monitor({ output = \"$monitor\", transform = $next })" >/dev/null
+
+case "$next" in
+    0) label="Landscape 0°" ;;
+    1) label="Portrait 90°" ;;
+    2) label="Landscape 180°" ;;
+    3) label="Portrait 270°" ;;
+esac
+
+notify-send "Display orientation" "$label"
