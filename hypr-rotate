@@ -1,15 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-monitor="$(
+# Read the focused monitor and its transform in one Hyprland query.
+focused="$(
     hyprctl monitors -j |
-    jq -r '.[] | select(.focused == true) | .name'
-)"
+        jq -er '.[] | select(.focused == true) | [.name, .transform] | @tsv'
+)" || {
+    echo "hypr-rotate: unable to read the focused monitor." >&2
+    exit 1
+}
 
-current="$(
-    hyprctl monitors -j |
-    jq -r '.[] | select(.focused == true) | .transform'
-)"
+IFS=$'\t' read -r monitor current <<< "$focused"
+
+if [[ -z "$monitor" || "$monitor" == "null" ]]; then
+    echo "hypr-rotate: no valid focused monitor found." >&2
+    exit 1
+fi
+
+# Only cycle through the four non-mirrored orientations.
+case "$current" in
+    0|1|2|3)
+        ;;
+    4|5|6|7)
+        echo "hypr-rotate: mirrored transform $current is not supported." >&2
+        exit 1
+        ;;
+    *)
+        echo "hypr-rotate: invalid monitor transform: $current" >&2
+        exit 1
+        ;;
+esac
 
 next=$(( (current + 1) % 4 ))
 
