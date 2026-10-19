@@ -2,116 +2,113 @@
 
 **One shortcut. Four orientations. Zero persistence.**
 
-A minimal, runtime-only display rotation utility for Hyprland.
+<p align="center">
+  <img src="docs/images/hypr-rotate-orientations.webp" alt="Illustration of a Hyprland desktop rotating through 0°, 90°, 180°, and 270°" width="1100">
+</p>
 
-Rotate your focused monitor with a single command or keyboard shortcut.
+A small, standalone, **runtime-only display rotation utility for Hyprland**. Run `hypr-rotate` to cycle the currently focused monitor through four orientations—without rewriting monitor configuration or starting a background service.
 
-## Features
+<sub>The images in this README are conceptual illustrations, not screenshots of a Hypr Rotate interface. Hypr Rotate is a command-line utility with no GUI.</sub>
 
-- Rotates the currently focused display
-- Cycles through four orientations
-- Silent on successful rotation; useful errors on failure
-- No daemon or background services
-- No persistent monitor configuration changes
-- No dependencies on Omarchy, MAME, or other applications
+## Quick start
+
+```bash
+git clone https://github.com/Magik23/hypr-rotate.git
+cd hypr-rotate
+install -Dm755 hypr-rotate ~/.local/bin/hypr-rotate
+```
+
+Ensure `~/.local/bin` is on your `PATH`, then run:
+
+```bash
+hypr-rotate
+```
+
+Each invocation rotates the **focused monitor** to the next orientation. Successful operation is silent; errors are reported to standard error.
 
 ## Rotation cycle
 
-Each execution advances one orientation:
+```text
+0° Landscape → 90° Portrait → 180° Inverted → 270° Portrait → 0° Landscape
+```
 
-Landscape 0° → Portrait 90° → Landscape 180°
-→ Portrait 270° → Landscape 0°
-
-## Requirements
-
-- Hyprland supporting the Lua monitor API
-  (`hyprctl eval` and `hl.monitor`)
-- Bash
-- jq
-
-Tested on Omarchy with Hyprland's Lua configuration system.
-
-Compatibility with older Hyprland versions has not been
-verified.
-
-### Dependencies on Arch Linux
-
-    sudo pacman -S --needed jq
-
-## Installation
-
-Clone the repository:
-
-    git clone https://github.com/Magik23/hypr-rotate.git
-    cd hypr-rotate
-
-Install the script:
-
-    install -Dm755 hypr-rotate ~/.local/bin/hypr-rotate
-
-Ensure ~/.local/bin is in your PATH.
-
-## Usage
-
-From the terminal:
-
-    hypr-rotate
-
-The currently focused monitor advances to the next orientation.
-Success is silent; errors are reported to standard error.
+No settings to save and no monitor configuration to rewrite. Your orientation at startup still comes from your own Hyprland monitor configuration.
 
 ## Keyboard shortcut
 
-Suggested shortcut: Super + Alt + R. Installation does not create
-a keyboard binding; configure one in Hyprland if you want it.
+Hypr Rotate **does not install a keyboard binding automatically**. `Super+Alt+R` is a suggested combination; choose another if it conflicts with your setup.
 
-### Omarchy (Lua bindings)
+**Omarchy (Lua bindings)** — add to `~/.config/hypr/bindings.lua`:
 
-In ~/.config/hypr/bindings.lua:
+```lua
+o.bind("SUPER + ALT + R", "Hypr Rotate", "hypr-rotate")
+```
 
-    o.bind("SUPER + ALT + R", "Hypr Rotate", "hypr-rotate")
+**Standard Hyprland Lua configuration** — use the appropriate Lua binding syntax:
 
-### Standard Hyprland Lua configuration
+```lua
+hl.bind("SUPER + ALT + R", hl.dsp.exec_cmd("hypr-rotate"))
+```
 
-    hl.bind("SUPER + ALT + R", hl.dsp.exec_cmd("hypr-rotate"))
+Use **only the example appropriate for your setup**, and avoid duplicating an existing binding. Changing the keyboard shortcut does not require modifying Hypr Rotate.
 
-Use the binding syntax appropriate for your configuration.
-Do not add both examples or duplicate an existing shortcut.
+## Designed to stay out of the way
 
-## Tests
+<p align="center">
+  <img src="docs/images/hypr-rotate-workstation.webp" alt="Concept illustration of landscape and portrait displays on a Linux desktop" width="960">
+</p>
 
-    bash tests/hypr-rotate_test.sh
+- **Focused monitor only.** Rotates the monitor Hyprland reports as focused.
+- **Runtime-only.** No persistent edits to `monitors.lua`, `hyprland.lua`, `hyprland.conf`, or other monitor configuration files.
+- **Silent on success.** No notification popup, daemon, or background service.
+- **Independent.** No dependency on Omarchy, Marchine, MAME, or other applications.
 
-The tests mock Hyprland; they do not rotate your real display.
+The utility queries Hyprland for the focused monitor and current transform, advances the four non-mirrored orientations, and applies the result through the Hyprland Lua monitor API. It does not install, alter, or depend on a wallpaper renderer.
 
-## Runtime-only behavior
+## Requirements
 
-Hypr Rotate does not write to monitors.lua, hyprland.lua,
-hyprland.conf, or other persistent monitor configuration.
+- Bash
+- `jq`
+- Hyprland with the Lua monitor API (`hyprctl eval` and `hl.monitor`)
 
-Your startup display orientation remains controlled by your
-existing Hyprland configuration.
+On Arch Linux, install `jq` if needed:
 
-It does not install or modify a wallpaper renderer.
+```bash
+sudo pacman -S --needed jq
+```
+
+Tested on Omarchy with Hyprland's Lua configuration system. Compatibility with older Hyprland versions has not been verified.
+
+## Test and update
+
+The repository includes simulated regression tests; they **do not rotate your actual display**:
+
+```bash
+bash tests/hypr-rotate_test.sh
+```
+
+To update a cloned installation:
+
+```bash
+cd ~/Projects/hypr-rotate  # Or wherever you cloned the repository
+git pull --ff-only
+install -Dm755 hypr-rotate ~/.local/bin/hypr-rotate
+```
 
 ## Known limitations
 
-- Requires Hyprland's supported Lua monitor API
-- Multi-monitor behavior has not yet been separately validated
-- Mirror/flipped transforms are not part of the rotation cycle
+- Mirror/flipped transforms are not part of the rotation cycle.
+- Requires a supported Hyprland Lua monitor API.
+- Multi-monitor behavior is covered by simulated tests, but hasn't been separately verified on a live multi-monitor setup.
 
-## Updating
+## Uninstall
 
-    cd hypr-rotate
-    git pull --ff-only
-    install -Dm755 hypr-rotate ~/.local/bin/hypr-rotate
+```bash
+rm ~/.local/bin/hypr-rotate
+```
 
-## Uninstallation
-
-    rm ~/.local/bin/hypr-rotate
-
-Remove your added keyboard shortcut separately.
+Remove any keyboard binding you added separately.
 
 ## License
 
-MIT. See LICENSE.
+MIT. See [LICENSE](LICENSE).
