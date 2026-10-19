@@ -1,45 +1,65 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Read the focused monitor and its transform in one Hyprland query.
+# Rotate only the focused monitor at runtime. Hyprland's saved configuration
+# and the user's keyboard bindings are deliberately left untouched.
+for dependency in hyprctl jq; do
+    if ! command -v "$dependency" >/dev/null 2>&1; then
+        printf 'hypr-rotate: required command not found: %s\n' "$dependency" >&2
+        exit 1
+    fi
+done
+
+# Require exactly one focused monitor. Reject missing or malformed monitor
+# data instead of silently choosing an arbitrary output.
 focused="$(
     hyprctl monitors -j |
-        jq -er '.[] | select(.focused == true) | [.name, .transform] | @tsv'
+        jq -er '
+            if type != "array" then empty
+            else
+                [.[] | select(.focused == true)] |
+                if length != 1 then empty
+                else
+                    .[0] |
+                    if (.name | type) == "string" and (.transform | type) == "number"
+                    then [.name, .transform] | @tsv
+                    else empty
+                    end
+                end
+            end
+        '
 )" || {
-    echo "hypr-rotate: unable to read the focused monitor." >&2
+    echo 'hypr-rotate: unable to read exactly one valid focused monitor.' >&2
     exit 1
 }
 
 IFS=$'\t' read -r monitor current <<< "$focused"
 
-if [[ -z "$monitor" || "$monitor" == "null" ]]; then
-    echo "hypr-rotate: no valid focused monitor found." >&2
+# Connector names are normally eDP-1, DP-1, HDMI-A-2, etc. Validate before
+# embedding the name in a Lua string passed to hyprctl eval.
+if [[ ! "$monitor" =~ ^[a-zA-Z0-9_.:-]+$ ]]; then
+    echo 'hypr-rotate: invalid monitor name returned by Hyprland.' >&2
     exit 1
 fi
 
 # Only cycle through the four non-mirrored orientations.
 case "$current" in
-    0|1|2|3)
-        ;;
+    0|1|2|3) ;;
     4|5|6|7)
-        echo "hypr-rotate: mirrored transform $current is not supported." >&2
+        printf 'hypr-rotate: mirrored transform %s is not supported.\n' "$current" >&2
         exit 1
         ;;
     *)
-        echo "hypr-rotate: invalid monitor transform: $current" >&2
+        printf 'hypr-rotate: invalid monitor transform: %s\n' "$current" >&2
         exit 1
         ;;
 esac
 
 next=$(( (current + 1) % 4 ))
 
-hyprctl eval "hl.monitor({ output = \"$monitor\", transform = $next })" >/dev/null
+if ! hyprctl eval "hl.monitor({ output = \"$monitor\", transform = $next })" >/dev/null; then
+    printf 'hypr-rotate: failed to rotate monitor %s.\n' "$monitor" >&2
+    exit 1
+fi
 
-case "$next" in
-    0) label="Landscape 0°" ;;
-    1) label="Portrait 90°" ;;
-    2) label="Landscape 180°" ;;
-    3) label="Portrait 270°" ;;
-esac
-
-notify-send "Display orientation" "$label"
+# Successful rotation is intentionally silent. The monitor itself is feedback.

@@ -10,7 +10,7 @@ Rotate your focused monitor with a single command or keyboard shortcut.
 
 - Rotates the currently focused display
 - Cycles through four orientations
-- Desktop notification after rotation
+- Silent on successful rotation; useful errors on failure
 - No daemon or background services
 - No persistent monitor configuration changes
 - No dependencies on Omarchy, MAME, or other applications
@@ -28,7 +28,6 @@ Landscape 0° → Portrait 90° → Landscape 180°
   (`hyprctl eval` and `hl.monitor`)
 - Bash
 - jq
-- notify-send (libnotify)
 
 Tested on Omarchy with Hyprland's Lua configuration system.
 
@@ -37,7 +36,7 @@ verified.
 
 ### Dependencies on Arch Linux
 
-    sudo pacman -S --needed jq libnotify
+    sudo pacman -S --needed jq
 
 ## Installation
 
@@ -59,10 +58,12 @@ From the terminal:
     hypr-rotate
 
 The currently focused monitor advances to the next orientation.
+Success is silent; errors are reported to standard error.
 
 ## Keyboard shortcut
 
-Suggested shortcut: Super + Alt + R.
+Suggested shortcut: Super + Alt + R. Installation does not create
+a keyboard binding; configure one in Hyprland if you want it.
 
 ### Omarchy (Lua bindings)
 
@@ -76,6 +77,12 @@ In ~/.config/hypr/bindings.lua:
 
 Use the binding syntax appropriate for your configuration.
 Do not add both examples or duplicate an existing shortcut.
+
+## Tests
+
+    bash tests/hypr-rotate_test.sh
+
+The tests mock Hyprland; they do not rotate your real display.
 
 ## Runtime-only behavior
 
